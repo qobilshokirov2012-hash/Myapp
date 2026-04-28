@@ -2,59 +2,76 @@
 <html lang="uz">
 <head>
     <meta charset="UTF-8">
-    <title>Roblox Clone Prototype</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roblox Studio Clone v2</title>
     <style>
-        body { margin: 0; overflow: hidden; font-family: sans-serif; display: flex; }
-        canvas { display: block; }
+        :root { --bg: #1e1e1e; --panel: #2d2d2d; --text: #ffffff; --accent: #007bff; }
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); display: flex; }
         
-        /* UI Panellari */
-        #sidebar { width: 250px; background: #222; color: white; height: 100vh; display: flex; flex-direction: column; }
-        #toolbar { position: absolute; top: 10px; left: 260px; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; }
-        .panel { padding: 15px; border-bottom: 1px solid #444; }
-        h3 { margin-top: 0; font-size: 16px; color: #aaa; }
+        /* Menu Uch nuqta */
+        #menu-btn { position: absolute; top: 10px; left: 10px; font-size: 24px; cursor: pointer; z-index: 100; background: var(--panel); padding: 5px 15px; border-radius: 5px; }
         
-        /* Explorer va Properties */
-        #explorer-list { list-style: none; padding: 0; max-height: 200px; overflow-y: auto; }
-        #explorer-list li { padding: 5px; cursor: pointer; border-bottom: 1px solid #333; }
-        #explorer-list li:hover { background: #444; }
-        .prop-group { margin-bottom: 10px; }
-        .prop-group label { display: block; font-size: 12px; color: #888; }
-        input { width: 100%; background: #333; border: 1px solid #555; color: white; padding: 3px; }
+        /* Sidebars */
+        .sidebar { width: 250px; background: var(--panel); height: 100vh; border-right: 1px solid #444; display: none; flex-direction: column; z-index: 90; }
+        .right-panel { width: 250px; background: var(--panel); height: 100vh; border-left: 1px solid #444; display: flex; flex-direction: column; }
+        
+        canvas { flex-grow: 1; outline: none; }
 
-        button { cursor: pointer; background: #444; color: white; border: 1px solid #666; padding: 5px 10px; margin: 2px; }
-        button:hover { background: #666; }
-        .active { background: #007bff !important; }
+        /* Toolbox & Blocks */
+        .item-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
+        .block-item { background: #3d3d3d; padding: 10px; text-align: center; cursor: pointer; border-radius: 5px; font-size: 12px; }
+        .block-item:hover { background: var(--accent); }
+
+        /* Skript Editor */
+        #script-panel { position: absolute; bottom: 20px; left: 270px; right: 270px; height: 200px; background: #1a1a1a; border: 1px solid var(--accent); display: none; flex-direction: column; }
+        #script-input { flex-grow: 1; background: transparent; color: #00ff00; border: none; padding: 10px; font-family: monospace; resize: none; }
+        
+        /* UI Elementlari */
+        .panel-header { padding: 10px; background: #383838; font-weight: bold; border-bottom: 1px solid #555; }
+        button { cursor: pointer; background: #444; color: white; border: none; padding: 8px; margin: 5px; border-radius: 3px; }
+        button.active { background: var(--accent); }
+        input, select { background: #333; color: white; border: 1px solid #555; padding: 5px; width: 90%; margin: 5px auto; display: block; }
     </style>
 </head>
 <body>
 
-    <!-- Sidebar: Explorer va Properties -->
-    <div id="sidebar">
-        <div class="panel">
-            <h3>Explorer</h3>
-            <ul id="explorer-list"></ul>
+    <div id="menu-btn" onclick="toggleSidebar()">⋮ Menu</div>
+
+    <!-- Chap Panel: Toolbox -->
+    <div id="left-sidebar" class="sidebar">
+        <div class="panel-header">Toolbox (Obyektlar)</div>
+        <div class="item-grid">
+            <div class="block-item" onclick="addPart('grass')">🌿 O't Blok</div>
+            <div class="block-item" onclick="addPart('brick')">🧱 G'isht</div>
+            <div class="block-item" onclick="addPart('neon')">💎 Neon</div>
+            <div class="block-item" onclick="addPart('wood')">🪵 Yog'och</div>
+            <div class="block-item" onclick="addPart('sphere')">🔮 Shar</div>
         </div>
-        <div class="panel" id="properties-panel">
-            <h3>Properties</h3>
-            <div id="props-content">Tanlang...</div>
-        </div>
-        <div class="panel">
-            <button onclick="saveProject()">Loyihani Saqlash (JSON)</button>
-            <button onclick="addBox()">+ Kub Qo'shish</button>
-        </div>
+        <div class="panel-header">Rejim</div>
+        <button id="play-btn" onclick="togglePlay()">▶️ Play</button>
+        <button onclick="toggleScript()">💻 Script Editor</button>
     </div>
 
-    <!-- Toolbar -->
-    <div id="toolbar">
-        <button id="btn-edit" class="active" onclick="setMode('edit')">Edit Mode</button>
-        <button id="btn-play" onclick="setMode('play')">Play Mode (Fizika)</button>
-        <span> | Gizmo: </span>
-        <button onclick="setGizmo('translate')">Move</button>
-        <button onclick="setGizmo('rotate')">Rotate</button>
-        <button onclick="setGizmo('scale')">Scale</button>
+    <!-- O'yin Maydoni -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Skript Paneli -->
+    <div id="script-panel">
+        <div class="panel-header" style="display: flex; justify-content: space-between;">
+            <span>Script.lua (JavaScript syntax)</span>
+            <button onclick="runScript()" style="margin: 0; padding: 2px 10px;">Run</button>
+        </div>
+        <textarea id="script-input" placeholder="// Tanlangan blokni 'part' deb chaqiring. Masalan: part.position.y += 2;"></textarea>
     </div>
 
-    <!-- Kutubxonalar -->
+    <!-- O'ng Panel: Explorer & Properties -->
+    <div class="right-panel">
+        <div class="panel-header">Explorer</div>
+        <div id="explorer" style="height: 40%; overflow-y: auto; padding: 10px;"></div>
+        <div class="panel-header">Properties</div>
+        <div id="properties" style="padding: 10px;"></div>
+    </div>
+
     <script type="importmap">
         {
             "imports": {
@@ -69,73 +86,89 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { TransformControls } from 'three/addons/controls/TransformControls.js';
 
-        // --- 1. ASOSIY O'ZGARUVCHILAR ---
         let scene, camera, renderer, controls, gizmo, raycaster, mouse;
         let objects = [];
-        let isPlayMode = false;
         let selectedObject = null;
+        let isPlaying = false;
 
         init();
         animate();
 
         function init() {
-            // Sahna
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x333333);
+            scene.background = new THREE.Color(0x87CEEB); // Sky color
 
-            // Kamera
-            camera = new THREE.PerspectiveCamera(75, (window.innerWidth - 250) / window.innerHeight, 0.1, 1000);
+            camera = new THREE.PerspectiveCamera(75, (window.innerWidth - 500) / window.innerHeight, 0.1, 1000);
             camera.position.set(10, 10, 10);
 
-            // Renderer
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth - 250, window.innerHeight);
-            document.body.appendChild(renderer.domElement);
+            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gameCanvas'), antialias: true });
+            renderer.setSize(window.innerWidth - 500, window.innerHeight);
 
-            // Chiroq
-            const light = new THREE.DirectionalLight(0xffffff, 1);
-            light.position.set(5, 10, 7.5);
-            scene.add(light);
-            scene.add(new THREE.AmbientLight(0x404040));
+            // Yer (Baseplate)
+            const floorGeo = new THREE.PlaneGeometry(100, 100);
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x3a5f0b });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            scene.add(floor);
 
-            // Grid (Setka)
-            const grid = new THREE.GridHelper(20, 20, 0x888888, 0x444444);
-            scene.add(grid);
+            // Chiroqlar
+            const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambient);
+            const sun = new THREE.DirectionalLight(0xffffff, 1);
+            sun.position.set(10, 20, 10);
+            scene.add(sun);
 
-            // Controls
             controls = new OrbitControls(camera, renderer.domElement);
             gizmo = new TransformControls(camera, renderer.domElement);
             gizmo.addEventListener('dragging-changed', (e) => controls.enabled = !e.value);
             scene.add(gizmo);
 
-            // Raycaster (Obyekt tanlash uchun)
             raycaster = new THREE.Raycaster();
             mouse = new THREE.Vector2();
 
-            window.addEventListener('click', onMouseClick);
-            window.addEventListener('resize', onWindowResize);
+            window.addEventListener('mousedown', onMouseDown);
+            window.addEventListener('resize', onResize);
         }
 
-        // --- 2. OBYEKT BOSHQARUVI ---
-        window.addBox = function() {
-            const geometry = new THREE.BoxGeometry(1, 1, 1);
-            const material = new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff });
-            const box = new THREE.Mesh(geometry, material);
-            box.position.y = 0.5;
-            box.name = "Part_" + objects.length;
-            
-            scene.add(box);
-            objects.push(box);
+        // Blok qo'shish funksiyasi
+        window.addPart = function(type) {
+            let geo = new THREE.BoxGeometry(2, 2, 2);
+            let mat;
+
+            switch(type) {
+                case 'grass':
+                    mat = new THREE.MeshStandardMaterial({ color: 0x4CAF50, roughness: 0.8 }); // Yashil va g'adir-budur
+                    break;
+                case 'brick':
+                    mat = new THREE.MeshStandardMaterial({ color: 0xA52A2A });
+                    break;
+                case 'neon':
+                    mat = new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 2 });
+                    break;
+                case 'wood':
+                    mat = new THREE.MeshStandardMaterial({ color: 0x5D4037 });
+                    break;
+                case 'sphere':
+                    geo = new THREE.SphereGeometry(1.5, 32, 32);
+                    mat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+                    break;
+            }
+
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.y = 1;
+            mesh.name = type + "_" + objects.length;
+            scene.add(mesh);
+            objects.push(mesh);
+            selectObject(mesh);
             updateExplorer();
-            selectObject(box);
         };
 
-        function onMouseClick(event) {
-            if (isPlayMode) return;
-            if (event.clientX < 250) return; // Sidebar bosilsa ishlamasin
-
-            mouse.x = ((event.clientX - 250) / (window.innerWidth - 250)) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        function onMouseDown(e) {
+            if (e.target.tagName !== 'CANVAS') return;
+            
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObjects(objects);
@@ -147,106 +180,75 @@
 
         function selectObject(obj) {
             selectedObject = obj;
-            gizmo.attach(obj);
+            if (!isPlaying) gizmo.attach(obj);
             updateProperties();
-            updateExplorer();
         }
 
-        // --- 3. UI YANGILASH ---
         function updateExplorer() {
-            const list = document.getElementById('explorer-list');
-            list.innerHTML = '';
-            objects.forEach((obj, index) => {
-                const li = document.createElement('li');
-                li.innerText = obj.name;
-                li.onclick = () => selectObject(obj);
-                if(selectedObject === obj) li.style.background = '#007bff';
-                list.appendChild(li);
-            });
+            const el = document.getElementById('explorer');
+            el.innerHTML = objects.map(o => `<div onclick="selectObjectByName('${o.name}')" style="cursor:pointer; padding:2px; ${selectedObject === o ? 'background:#555' : ''}">${o.name}</div>`).join('');
         }
+
+        window.selectObjectByName = (name) => {
+            const obj = objects.find(o => o.name === name);
+            if(obj) selectObject(obj);
+        };
 
         function updateProperties() {
-            const panel = document.getElementById('props-content');
+            const el = document.getElementById('properties');
             if (!selectedObject) return;
-
-            panel.innerHTML = `
-                <div class="prop-group">
-                    <label>Nomi</label>
-                    <input type="text" value="${selectedObject.name}" onchange="updateObjProp('name', this.value)">
-                </div>
-                <div class="prop-group">
-                    <label>Rangi</label>
-                    <input type="color" value="#${selectedObject.material.color.getHexString()}" onchange="updateObjProp('color', this.value)">
-                </div>
-                <div class="prop-group">
-                    <label>Position Y</label>
-                    <input type="number" step="0.1" value="${selectedObject.position.y}" onchange="updateObjProp('posy', this.value)">
-                </div>
+            el.innerHTML = `
+                <label>Nomi</label><input type="text" value="${selectedObject.name}" oninput="selectedObject.name=this.value; updateExplorer()">
+                <label>Rang</label><input type="color" value="#${selectedObject.material.color.getHexString()}" oninput="selectedObject.material.color.set(this.value)">
+                <label>Y-O'qi</label><input type="number" step="0.5" value="${selectedObject.position.y}" oninput="selectedObject.position.y=parseFloat(this.value)">
             `;
         }
 
-        window.updateObjProp = function(prop, val) {
-            if (!selectedObject) return;
-            if (prop === 'name') selectedObject.name = val;
-            if (prop === 'color') selectedObject.material.color.set(val);
-            if (prop === 'posy') selectedObject.position.y = parseFloat(val);
-            updateExplorer();
-        };
-
-        window.setGizmo = function(mode) {
-            gizmo.setMode(mode);
-        };
-
-        // --- 4. PLAY / EDIT MODES ---
-        window.setMode = function(mode) {
-            isPlayMode = (mode === 'play');
-            document.getElementById('btn-edit').className = isPlayMode ? '' : 'active';
-            document.getElementById('btn-play').className = isPlayMode ? 'active' : '';
-            
-            if (isPlayMode) {
-                gizmo.detach();
-                console.log("Fizika ishga tushdi...");
-            } else {
-                if (selectedObject) gizmo.attach(selectedObject);
+        // Skript Tizimi
+        window.runScript = function() {
+            if (!selectedObject) return alert("Avval blokni tanlang!");
+            const code = document.getElementById('script-input').value;
+            try {
+                // Skript ichida 'part' o'zgaruvchisi tanlangan blokga teng bo'ladi
+                const scriptFunc = new Function('part', 'THREE', code);
+                scriptFunc(selectedObject, THREE);
+            } catch (err) {
+                alert("Xato: " + err.message);
             }
         };
 
-        // --- 5. SAQLASH (JSON) ---
-        window.saveProject = function() {
-            const data = objects.map(obj => ({
-                name: obj.name,
-                pos: obj.position,
-                rot: obj.rotation,
-                scale: obj.scale,
-                color: obj.material.color.getHex()
-            }));
-            const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'project.json';
-            a.click();
+        window.toggleSidebar = () => {
+            const sb = document.getElementById('left-sidebar');
+            sb.style.display = sb.style.display === 'flex' ? 'none' : 'flex';
+            onResize();
         };
 
-        function onWindowResize() {
-            camera.aspect = (window.innerWidth - 250) / window.innerHeight;
+        window.toggleScript = () => {
+            const sp = document.getElementById('script-panel');
+            sp.style.display = sp.style.display === 'flex' ? 'none' : 'flex';
+        };
+
+        window.togglePlay = () => {
+            isPlaying = !isPlaying;
+            document.getElementById('play-btn').classList.toggle('active');
+            if(isPlaying) gizmo.detach();
+            else if(selectedObject) gizmo.attach(selectedObject);
+        };
+
+        function onResize() {
+            const width = window.innerWidth - (document.getElementById('left-sidebar').style.display === 'flex' ? 250 : 0) - 250;
+            camera.aspect = width / window.innerHeight;
             camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth - 250, window.innerHeight);
+            renderer.setSize(width, window.innerHeight);
         }
 
         function animate() {
             requestAnimationFrame(animate);
-            
-            if (isPlayMode) {
-                // Oddiy "Gravity" simulyatsiyasi
-                objects.forEach(obj => {
-                    if (obj.position.y > 0.5) {
-                        obj.position.y -= 0.05; 
-                    }
-                });
+            if (isPlaying) {
+                // Play rejimida oddiy harakat (Gravity yoki skript harakati kutiladi)
             }
-            
             renderer.render(scene, camera);
         }
     </script>
 </body>
-                                                                                  </html>
+</html>
