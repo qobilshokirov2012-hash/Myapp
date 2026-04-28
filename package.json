@@ -1,0 +1,12 @@
+{
+  "name": "roblox-clone",
+  "version": "1.0.0",
+  "description": "3D Engine Prototype",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
